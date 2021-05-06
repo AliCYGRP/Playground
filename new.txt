@@ -17,47 +17,28 @@ namespace CredentialSolution.BL
 
         public List<PendingCredentialResponse> GetPendingCredentials()
         {
-            var atpObj = _dbContext.AtpCredential
-                        .Where(x => x.StatusId == (int)IdentityCredentialStatusModel.IdentityCredentialStatus.Pending)
-                        .Join(
-                         _dbContext.CompanyDetail,
-                         atpCredentialObj => atpCredentialObj.CredentialId,
-                         companyDetailsObj => companyDetailsObj.CredentialId,
-                         (atpCredentialObj, companyDetailsObj) => new
-                         {
-                             atpCredentialObj,
-                             companyDetailsObj
-                         }
-                        )
-                        .Join(
-                           _dbContext.Credentials,
-                           atpCredentialsObj => atpCredentialsObj.atpCredentialObj.CredentialId,
-                           credentialsObj => credentialsObj.Id,
-                           (atpCredentialsCompanyDetailsObj, credentialsObj) => new
-                           {
-                               atpCredentialsCompanyDetailsObj,
-                               credentialsObj
-                           }
-                   ).Join(
-                      _dbContext.PartnerDetails,
-                      credentialsObj => credentialsObj.credentialsObj.PartnerDetail_Id,
-                      partnerDetailObj => partnerDetailObj.Id,
-                       (credentialsAtpCompanyDetailsObj, partnerDetailObj) => new
-                       {
-                           credentialsAtpCompanyDetailsObj,
-                           partnerDetailObj
-                       }
-                    ).AsEnumerable().
-                    Select(x => new PendingCredentialResponse
-                    {
-                        Id = x.credentialsAtpCompanyDetailsObj.atpCredentialsCompanyDetailsObj.atpCredentialObj.Id + "_atp",
-                        CompanyName = x.credentialsAtpCompanyDetailsObj.atpCredentialsCompanyDetailsObj.companyDetailsObj.CompanyName,
-                        Partner = x.partnerDetailObj.PartnerName,
-                        CreationDate = x.credentialsAtpCompanyDetailsObj.atpCredentialsCompanyDetailsObj.atpCredentialObj.CreationDate.ToString("MM/dd/yyyy HH:mm:ss"),
-                        TypeOfCredential = "ATP",
-                        ProofSource = "",
-                        Status = Enum.GetName(typeof(IdentityCredentialStatusModel.IdentityCredentialStatus), x.credentialsAtpCompanyDetailsObj.atpCredentialsCompanyDetailsObj.atpCredentialObj.StatusId)
-                    }).ToList();
+            var atpObj = (
+                from ATP in _dbContext.AtpCredential
+                join CD in _dbContext.CompanyDetail
+                on ATP.CredentialId equals CD.CredentialId
+
+                join C in _dbContext.Credentials
+                on CD.CredentialId equals C.Id
+
+                join PD in _dbContext.PartnerDetails
+                on C.PartnerDetail_Id equals PD.Id
+
+                where ATP.StatusId == (int)IdentityCredentialStatusModel.IdentityCredentialStatus.Pending
+                select new PendingCredentialResponse
+                {
+                    Id = ATP.Id + "_atp",
+                    CompanyName = CD.CompanyName,
+                    Partner = PD.PartnerName,
+                    CreationDate = "",
+                    TypeOfCredential = "ATP",
+                    ProofSource = "",
+                    Status = Enum.GetName(typeof(IdentityCredentialStatusModel.IdentityCredentialStatus), ATP.StatusId)
+                }).ToList();
 
             var identityObj = _dbContext.IdentityCredentials
                             .Where(x => x.IdentityCredentialStatusId == (int)IdentityCredentialStatusModel.IdentityCredentialStatus.Pending)
@@ -238,7 +219,7 @@ namespace CredentialSolution.BL
                                                             partnerDetailsObj
                                                         }).Join(
                                                         _dbContext.VerifyIdentityVias,
-                                                        identityCredentialStatusCompanyDetailsCompanyTypeObj =>              identityCredentialStatusCompanyDetailsCompanyTypeObj.identityCredentialStatusCompanyDetailsCompanyTypeCredentialsObj.identityCredentialStatusCompanyDetailsCompanyTypeObj.identityCredentialStatusCompanyDetailsObj.identityCredentialStatusObj.identityCredentialObj.VerifyIdentityViaId,
+                                                        identityCredentialStatusCompanyDetailsCompanyTypeObj => identityCredentialStatusCompanyDetailsCompanyTypeObj.identityCredentialStatusCompanyDetailsCompanyTypeCredentialsObj.identityCredentialStatusCompanyDetailsCompanyTypeObj.identityCredentialStatusCompanyDetailsObj.identityCredentialStatusObj.identityCredentialObj.VerifyIdentityViaId,
                                                         verifyMyIdentityViaObj => verifyMyIdentityViaObj.Id,
                                                         (identityCredentialStatusCompanyDetailsCompanyTypeCredentialPartnerDetailssObj, verifyMyIdentityViaObj) => new
                                                         {
